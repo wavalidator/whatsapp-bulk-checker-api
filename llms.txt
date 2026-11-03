@@ -1,0 +1,31 @@
+# WA Validator — WhatsApp Bulk Checker API
+
+> Check up to 100 phone numbers for WhatsApp in one synchronous request. 1 credit per number.
+
+## Endpoint
+POST https://wavalidator.com/api/v1/bulk-check/
+Headers: Authorization: Bearer YOUR_API_KEY (or apikey: YOUR_API_KEY) ; Content-Type: application/json
+Body: {"numbers": ["14155551234", "14155550000", "447911123456"]}
+
+## Response
+{"checked":3,"invalid":0,"total":3,"credits_used":3,"credits_remaining":97,
+ "results":[{"number":"14155551234","exists":true,"source":"live","status":"valid"}, ...]}
+results[].status: "valid" = has WhatsApp; "invalid" = no WhatsApp or malformed; "error" = not completed, retry, not charged.
+results[].source: "live", a cache source, or "format_check" (rejected before the live check, still charged).
+If credits run out mid-batch the rest is skipped: compare results length with total.
+
+## Number format
+Country code + national number, digits only, 7-15 digits. "+", spaces and "-" are stripped.
+
+## Errors
+400 bad JSON / numbers not a non-empty array / more than 100; 401 bad key; 402 no credits;
+429 {"status":"limit","window":"minute|hour|day","retry_after":N} plus Retry-After header.
+
+## Batching
+For lists over 100, split into chunks of 100 and send sequentially, sleeping retry_after on 429.
+
+## Links
+- Docs: https://wavalidator.com/api-docs/#bulk-check
+- OpenAPI: https://github.com/wavalidator/whatsapp-bulk-checker-api/blob/main/openapi.yaml
+- Single number API: https://github.com/wavalidator/whatsapp-number-checker-api
+- MCP server: https://github.com/wavalidator/whatsapp-checker-mcp-server

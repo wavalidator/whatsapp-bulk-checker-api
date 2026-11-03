@@ -1,0 +1,139 @@
+openapi: 3.0.3
+info:
+  title: WA Validator — WhatsApp Bulk Checker API
+  version: "1.0.0"
+  description: |
+    Check up to 100 phone numbers for WhatsApp in one synchronous request.
+    1 credit per number checked; numbers that return status "error" are not charged.
+  contact:
+    name: WA Validator
+    url: https://wavalidator.com/contact/
+  termsOfService: https://wavalidator.com/terms/
+externalDocs:
+  description: Full API documentation
+  url: https://wavalidator.com/api-docs/#bulk-check
+servers:
+  - url: https://wavalidator.com
+security:
+  - bearerAuth: []
+  - apiKeyHeader: []
+paths:
+  /api/v1/bulk-check/:
+    post:
+      operationId: bulkCheckWhatsAppNumbers
+      summary: Check up to 100 phone numbers for WhatsApp
+      tags: [WhatsApp bulk check]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkRequest"
+            example:
+              numbers: ["14155551234", "14155550000", "447911123456"]
+      responses:
+        "200":
+          description: Batch processed
+          headers:
+            X-RateLimit-Limit:
+              schema: { type: integer }
+            X-RateLimit-Remaining:
+              schema: { type: integer }
+            X-RateLimit-Reset:
+              description: Unix timestamp when the per-minute window resets
+              schema: { type: integer }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkResponse"
+              example:
+                checked: 3
+                invalid: 0
+                total: 3
+                credits_used: 3
+                credits_remaining: 97
+                results:
+                  - { number: "14155551234", exists: true, source: live, status: valid }
+                  - { number: "14155550000", exists: false, source: live, status: invalid }
+                  - { number: "447911123456", exists: true, source: live, status: valid }
+        "400":
+          description: Invalid JSON, numbers missing/empty/not an array, or more than 100 numbers
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "402":
+          description: Insufficient credits
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429":
+          description: Per-minute, hourly or daily bulk limit reached, or daily validation quota used up
+          headers:
+            Retry-After:
+              schema: { type: integer }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RateLimitError" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: API key from https://wavalidator.com/dashboard/
+    apiKeyHeader:
+      type: apiKey
+      in: header
+      name: apikey
+  schemas:
+    BulkRequest:
+      type: object
+      required: [numbers]
+      properties:
+        numbers:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: string
+            description: International format with country code; "+", spaces and "-" are stripped
+    BulkResult:
+      type: object
+      properties:
+        number: { type: string }
+        exists: { type: boolean }
+        source:
+          type: string
+          description: live, a cache source, or format_check
+        status:
+          type: string
+          enum: [valid, invalid, error]
+    BulkResponse:
+      type: object
+      properties:
+        checked: { type: integer, description: Numbers sent to the live check }
+        invalid: { type: integer, description: Numbers rejected by the format check }
+        total: { type: integer }
+        credits_used: { type: integer }
+        credits_remaining: { type: integer }
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/BulkResult" }
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        max: { type: integer }
+    RateLimitError:
+      type: object
+      properties:
+        status: { type: string, enum: [limit] }
+        error: { type: string }
+        message: { type: string }
+        limit: { type: integer }
+        window: { type: string, enum: [minute, hour, day] }
+        retry_after: { type: integer }

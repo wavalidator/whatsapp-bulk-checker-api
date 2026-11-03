@@ -1,0 +1,41 @@
+{
+  "name": "WhatsApp Bulk Checker API",
+  "provider": "WA Validator",
+  "website": "https://wavalidator.com",
+  "documentation": "https://wavalidator.com/api-docs/#bulk-check",
+  "shape": "realtime-batch",
+  "method": "POST",
+  "endpoint": "https://wavalidator.com/api/v1/bulk-check/",
+  "auth": {
+    "type": "bearer",
+    "header": "Authorization",
+    "format": "Bearer YOUR_API_KEY",
+    "alternative_header": "apikey"
+  },
+  "request": {
+    "numbers": "array of 1-100 strings, international format with country code"
+  },
+  "response": {
+    "checked": "integer",
+    "invalid": "integer",
+    "total": "integer",
+    "credits_used": "integer",
+    "credits_remaining": "integer",
+    "results": "array of {number, exists, source, status}"
+  },
+  "pricing": {
+    "unit": "credit",
+    "cost_per_number": 1,
+    "charged_on_error": false,
+    "charged_on_format_reject": true
+  },
+  "limits": {
+    "numbers_per_request": 100,
+    "request_windows": ["minute", "hour", "day"],
+    "values": "depend on plan"
+  },
+  "related": [
+    "https://github.com/wavalidator/whatsapp-number-checker-api",
+    "https://github.com/wavalidator/whatsapp-checker-mcp-server"
+  ]
+}
